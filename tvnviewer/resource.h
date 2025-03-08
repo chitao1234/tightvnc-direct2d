@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Включаемый файл, созданный в Microsoft Visual C++.
-// Используется tvnviewer.rc
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ Microsoft Visual C++.
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ tvnviewer.rc
 //
 #define IDB_TOOLBAR                     101
 #define IDI_CNOCURSOR                   102
@@ -74,6 +74,7 @@
 #define IDS_TB_SCALEAUTO                214
 #define IDS_TB_FULLSCREEN               215
 #define IDS_TB_CONFIGURATION            216
+#define IDS_TB_DIRECT2D                 217
 #define IDD_FS_WARNING                  230
 #define IDD_DISPATCH_ID                 231
 #define IDC_LABEL                       1001
@@ -169,6 +170,7 @@
 #define ID_REQ_SCR_REFRESH              40006
 #define ID_CTRL_ALT_DEL                 40007
 #define ID_TRANSF_FILES                 40008
+#define ID_TOGGLE_DIRECT2D              40009
 
 // Next default values for new objects
 // 

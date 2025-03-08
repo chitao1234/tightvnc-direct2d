@@ -131,6 +131,10 @@ bool ViewerWindow::onCreate(LPCREATESTRUCT lps)
     m_bToolBar = false;
   }
   m_menu.checkedMenuItem(IDS_TB_TOOLBAR, bShowToolbar);
+
+  // FIXME: read d2d from conf
+  m_menu.checkedMenuItem(IDS_TB_DIRECT2D, false);
+  
   return true;
 }
 
@@ -754,6 +758,9 @@ bool ViewerWindow::onCommand(WPARAM wParam, LPARAM lParam)
     case IDS_TB_CONFIGURATION:
       dialogConfiguration();
       return true;
+    case IDS_TB_DIRECT2D:
+      commandToggleDirect2D();
+      return true;
   }
   return false;
 }
@@ -1260,5 +1267,43 @@ LRESULT ViewerWindow::onHookProc(int code, WPARAM wParam, LPARAM lParam)
     return true;
   } else {
     return false;
+  }
+}
+
+void ViewerWindow::commandToggleDirect2D()
+{
+  // Toggle Direct2D mode
+  if (m_dsktWnd.getHWnd() != NULL && IsWindow(m_dsktWnd.getHWnd())) {
+    // Get the current rendering mode
+    RenderMode currentMode = m_dsktWnd.getRenderMode();
+    
+    // Toggle between GDI and Direct2D
+    RenderMode newMode = (currentMode == RENDER_MODE_GDI) ? 
+                         RENDER_MODE_DIRECT2D : RENDER_MODE_GDI;
+    
+    // Try to set the new mode
+    if (m_dsktWnd.setRenderMode(newMode)) {
+      // If successful, update menu checkmark
+      m_menu.checkedMenuItem(IDS_TB_DIRECT2D, newMode == RENDER_MODE_DIRECT2D);
+      
+      // Force a screen refresh to show the rendering change immediately
+      if (m_viewerCore) {
+        m_viewerCore->refreshFrameBuffer();
+      }
+    } else {
+      // If unsuccessful and trying to enable D2D, show error message
+      if (newMode == RENDER_MODE_DIRECT2D) {
+        MessageBox(getHWnd(), 
+                   _T("Direct2D rendering is not available on this system."),
+                   ProductNames::VIEWER_PRODUCT_NAME, 
+                   MB_OK | MB_ICONINFORMATION);
+      }
+    }
+  } else {
+    // If the desktop window is not created, show an error message
+    MessageBox(getHWnd(),
+               _T("Cannot change rendering mode - desktop window not initialized."),
+               ProductNames::VIEWER_PRODUCT_NAME,
+               MB_OK | MB_ICONEXCLAMATION);
   }
 }

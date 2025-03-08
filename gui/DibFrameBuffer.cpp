@@ -26,19 +26,20 @@
 #include "util/Exception.h"
 
 DibFrameBuffer::DibFrameBuffer()
-: m_dibSection(0)
+: m_renderManager(0)
 {
 }
 
 DibFrameBuffer::~DibFrameBuffer()
 {
-  releaseDibSection();
+  releaseRenderManager();
 }
 
 void DibFrameBuffer::setTargetDC(HDC targetDC)
 {
-  checkDibValid();
-  m_dibSection->setTargetDC(targetDC);
+  // This method is no longer needed with RenderManager, but kept for compatibility
+  // The RenderManager handles its own target DC
+  checkRenderManagerValid();
 }
 
 bool DibFrameBuffer::assignProperties(const FrameBuffer *srcFrameBuffer)
@@ -181,26 +182,41 @@ inline int DibFrameBuffer::getBytesPerRow() const
 
 void DibFrameBuffer::blitToDibSection(const Rect *rect)
 {
-  checkDibValid();
-  m_dibSection->blitToDibSection(rect);
+  checkRenderManagerValid();
+  m_renderManager->blitToDibSection(rect);
 }
 
 void DibFrameBuffer::blitTransparentToDibSection(const Rect *rect)
 {
-  checkDibValid();
-  m_dibSection->blitTransparentToDibSection(rect);
+  checkRenderManagerValid();
+  m_renderManager->blitTransparentToDibSection(rect);
 }
 
 void DibFrameBuffer::blitFromDibSection(const Rect *rect)
 {
-  checkDibValid();
-  m_dibSection->blitFromDibSection(rect);
+  checkRenderManagerValid();
+  m_renderManager->blitFromDibSection(rect);
 }
 
 void DibFrameBuffer::stretchFromDibSection(const Rect *srcRect, const Rect *dstRect)
 {
-  checkDibValid();
-  m_dibSection->stretchFromDibSection(srcRect, dstRect);
+  checkRenderManagerValid();
+  m_renderManager->stretchFromDibSection(srcRect, dstRect);
+}
+
+bool DibFrameBuffer::setRenderMode(RenderMode mode)
+{
+  checkRenderManagerValid();
+  return m_renderManager->setRenderMode(mode);
+}
+
+RenderMode DibFrameBuffer::getRenderMode() const
+{
+  // this method might be called before render manager is even initialized
+  if (m_renderManager == 0) {
+    return RENDER_MODE_GDI;
+  }
+  return m_renderManager->getRenderMode();
 }
 
 void DibFrameBuffer::setProperties(const Dimension *newDim,
@@ -208,31 +224,47 @@ void DibFrameBuffer::setProperties(const Dimension *newDim,
                                    HWND compatibleWindow)
 {
   m_fb.setPropertiesWithoutResize(newDim, pixelFormat);
-  void *buffer = updateDibSection(newDim, pixelFormat, compatibleWindow);
+  void *buffer = updateRenderManager(newDim, pixelFormat, compatibleWindow);
   m_fb.setBuffer(buffer);
 }
 
-void *DibFrameBuffer::updateDibSection(const Dimension *newDim,
+void *DibFrameBuffer::updateRenderManager(const Dimension *newDim,
                                       const PixelFormat *pixelFormat,
                                       HWND compatibleWindow)
 {
-  releaseDibSection();
-  m_dibSection = new DibSection(pixelFormat, newDim, compatibleWindow);
-  return m_dibSection->getBuffer();
+  releaseRenderManager();
+  
+  // Check if the window handle is valid - if not, try using desktop window
+  if (compatibleWindow == NULL || !IsWindow(compatibleWindow)) {
+    compatibleWindow = GetDesktopWindow();
+  }
+  
+  // Start with GDI rendering by default for maximum compatibility
+  RenderMode initialMode = RENDER_MODE_GDI;
+  
+  try {
+    // Create new RenderManager with default GDI rendering
+    m_renderManager = new RenderManager(pixelFormat, newDim, compatibleWindow, initialMode);
+    return m_renderManager->getBuffer();
+  } catch (Exception &e) {
+    // If we couldn't create the render manager, clean up and rethrow
+    releaseRenderManager();
+    throw;
+  }
 }
 
-void DibFrameBuffer::releaseDibSection()
+void DibFrameBuffer::releaseRenderManager()
 {
-  if (m_dibSection) {
-    delete m_dibSection;
-    m_dibSection = 0;
+  if (m_renderManager) {
+    delete m_renderManager;
+    m_renderManager = 0;
     m_fb.setBuffer(0);
   }
 }
 
-void DibFrameBuffer::checkDibValid()
+void DibFrameBuffer::checkRenderManagerValid() const
 {
-  if (m_dibSection == 0) {
-    throw Exception(_T("Can't set target DC because it is not initialized a DIB section yet"));
+  if (m_renderManager == 0) {
+    throw Exception(_T("Can't perform operation because RenderManager is not initialized yet"));
   }
 }

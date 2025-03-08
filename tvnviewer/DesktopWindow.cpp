@@ -254,6 +254,21 @@ bool DesktopWindow::onMouse(unsigned char mouseButtons, unsigned short wheelSpee
 
 bool DesktopWindow::onKey(WPARAM wParam, LPARAM lParam) 
 {
+  bool ctrlIsPressed = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+  bool altIsPressed = (GetKeyState(VK_MENU) & 0x8000) != 0;
+  
+  // Toggle render mode with Ctrl+Alt+R
+  if (ctrlIsPressed && altIsPressed && wParam == 'R') {
+    RenderMode newMode = toggleRenderMode();
+    // Log the mode change (optional)
+    if (newMode == RENDER_MODE_DIRECT2D) {
+      m_logWriter->info(_T("Switched to Direct2D rendering mode"));
+    } else {
+      m_logWriter->info(_T("Switched to GDI rendering mode"));
+    }
+    return true;
+  }
+
   if (!m_conConf->isViewOnly()) {
     unsigned short virtualKey = static_cast<unsigned short>(wParam);
     unsigned int additionalInfo = static_cast<unsigned int>(lParam);
@@ -742,4 +757,40 @@ void DesktopWindow::sendCutTextEvent(const StringStorage *cutText)
     m_logWriter->detail(_T("Error in DesktopWindow::sendCutTextEvent(): %s"),
                         exception.getMessage());
   }
+}
+
+bool DesktopWindow::setRenderMode(RenderMode mode)
+{
+  // Try to set the render mode, it will return false if the mode isn't available
+  AutoLock al(&m_bufferLock);
+  return m_framebuffer.setRenderMode(mode);
+}
+
+RenderMode DesktopWindow::getRenderMode()
+{
+  AutoLock al(&m_bufferLock);
+  return m_framebuffer.getRenderMode();
+}
+
+RenderMode DesktopWindow::toggleRenderMode()
+{
+  AutoLock al(&m_bufferLock);
+  
+  // Get current mode
+  RenderMode currentMode = m_framebuffer.getRenderMode();
+  
+  // Toggle between GDI and Direct2D
+  RenderMode newMode = (currentMode == RENDER_MODE_GDI) ? 
+                       RENDER_MODE_DIRECT2D : RENDER_MODE_GDI;
+  
+  // Try to set the new mode
+  if (!m_framebuffer.setRenderMode(newMode)) {
+    // If setting the new mode fails, keep the current mode
+    return currentMode;
+  }
+  
+  // Trigger a repaint to show changes immediately
+  repaint(NULL);
+  
+  return newMode;
 }

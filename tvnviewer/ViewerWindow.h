@@ -108,6 +108,7 @@ protected:
   void commandScaleOut();
   void commandScale100();
   void commandScaleAuto();
+  void commandToggleDirect2D();
 
   //
   // It is implementation of CoreEventsAdapter functions.
@@ -200,6 +201,8 @@ private:
   virtual LRESULT onHookProc(int code, WPARAM wParam, LPARAM lParam);
   WinHooks m_winHooks;
   bool m_hooksEnabledFirstTime;
+
+  void enableKeyInjectionFeature();
 };
 
 #endif
