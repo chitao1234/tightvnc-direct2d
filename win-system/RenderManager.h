@@ -71,8 +71,20 @@ public:
   // Returns false if the requested mode is not available
   bool setRenderMode(RenderMode mode);
 
-  // Check if Direct2D is available on this system
+  /**
+   * Checks if Direct2D is available on this system
+   * @return true if Direct2D is available, false otherwise
+   */
   static bool isD2DAvailable();
+  
+  /**
+   * Draw a test pattern directly to the screen to check if Direct2D is working
+   * This is for debugging purposes only
+   */
+  void drawTestPattern();
+
+  // NEW FUNCTION: handle resize
+  void resize(const Rect* rect);
 
 private:
   // Create/destroy render implementations

@@ -345,6 +345,17 @@ void DesktopWindow::doDraw(DeviceContext *dc)
   int fbWidth  = m_framebuffer.getDimension().width;
   int fbHeight = m_framebuffer.getDimension().height;
 
+  // NEW: inform fb about resize first
+  if (m_winResize) {
+    FILE* f = fopen("d2d_debug.log", "a");
+    if (f) {
+      fprintf(f, "[DW] doDraw: resize! %dx%d\n",
+        m_clientArea.getWidth(), m_clientArea.getHeight());
+      fclose(f);
+    }
+    m_framebuffer.resize(&m_clientArea);
+  }
+
   if (!fbWidth || !fbHeight) {
     Graphics graphics(dc);
 
@@ -489,6 +500,15 @@ void DesktopWindow::calcClientArea() {
 
 void DesktopWindow::drawImage(const RECT *src, const RECT *dst)
 {
+  // Add debug logging to trace drawing
+  FILE* f = fopen("d2d_debug.log", "a");
+  if (f) {
+    fprintf(f, "[DW] drawImage: src=(%d,%d,%d,%d), dst=(%d,%d,%d,%d)\n", 
+            src->left, src->top, src->right, src->bottom,
+            dst->left, dst->top, dst->right, dst->bottom);
+    fclose(f);
+  }
+
   Rect rc_src(src);
   Rect rc_dest(dst);
 
@@ -500,8 +520,20 @@ void DesktopWindow::drawImage(const RECT *src, const RECT *dst)
      src->right == dst->right &&
      src->top == dst->top &&
      src->bottom == dst->bottom) {
+    // Add debug log
+    f = fopen("d2d_debug.log", "a");
+    if (f) {
+      fprintf(f, "[DW] Using blitFromDibSection\n");
+      fclose(f);
+    }
     m_framebuffer.blitFromDibSection(&rc_dest);
   } else {
+    // Add debug log
+    f = fopen("d2d_debug.log", "a");
+    if (f) {
+      fprintf(f, "[DW] Using stretchFromDibSection\n");
+      fclose(f);
+    }
     m_framebuffer.stretchFromDibSection(&rc_dest, &rc_src);
   }
 }
@@ -521,6 +553,14 @@ bool DesktopWindow::onDestroy()
 void DesktopWindow::updateFramebuffer(const FrameBuffer *framebuffer,
                                      const Rect *dstRect)
 {
+  // Add debug logging
+  FILE* f = fopen("d2d_debug.log", "a");
+  if (f) {
+    fprintf(f, "[DW] updateFramebuffer: rect=(%d,%d,%d,%d)\n", 
+            dstRect->left, dstRect->top, dstRect->right, dstRect->bottom);
+    fclose(f);
+  }
+  
   // This code doesn't require blocking of m_framebuffer.
   //
   // If in this moment Windows paint frame buffer to screen,
@@ -578,6 +618,11 @@ void DesktopWindow::setNewFramebuffer(const FrameBuffer *framebuffer)
 
 void DesktopWindow::repaint(const Rect *repaintRect)
 {
+  if (!repaintRect) {
+    m_isBackgroundDirty = false;
+    redraw();
+    return;
+  }
   Rect rect;
   m_scManager.getSourceRect(&rect);
   Rect paint = repaintRect;
@@ -761,15 +806,65 @@ void DesktopWindow::sendCutTextEvent(const StringStorage *cutText)
 
 bool DesktopWindow::setRenderMode(RenderMode mode)
 {
-  // Try to set the render mode, it will return false if the mode isn't available
-  AutoLock al(&m_bufferLock);
-  return m_framebuffer.setRenderMode(mode);
+  // Add debug logging
+  FILE* f = fopen("d2d_debug.log", "a");
+  if (f) {
+    fprintf(f, "[DW] setRenderMode: %s\n", (mode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
+    fclose(f);
+  }
+  
+  bool success = m_framebuffer.setRenderMode(mode);
+  
+  // If we succeeded in setting Direct2D mode, draw a test pattern to verify rendering
+  if (success && mode == RENDER_MODE_DIRECT2D) {
+    f = fopen("d2d_debug.log", "a");
+    if (f) {
+      fprintf(f, "[DW] Drawing test pattern to verify Direct2D rendering\n");
+      fclose(f);
+    }
+    
+    // Draw a test pattern that will be visible regardless of frame buffer content
+    try {
+      m_framebuffer.drawTestPattern();
+      
+      f = fopen("d2d_debug.log", "a");
+      if (f) {
+        fprintf(f, "[DW] Test pattern drawn successfully\n");
+        fclose(f);
+      }
+    } catch (std::exception& e) {
+      f = fopen("d2d_debug.log", "a");
+      if (f) {
+        fprintf(f, "[DW] Exception drawing test pattern: %s\n", e.what());
+        fclose(f);
+      }
+    } catch (...) {
+      f = fopen("d2d_debug.log", "a");
+      if (f) {
+        fprintf(f, "[DW] Unknown exception drawing test pattern\n");
+        fclose(f);
+      }
+    }
+    
+    // Force a redraw immediately to show the test pattern
+    repaint(NULL);
+  }
+  
+  return success;
 }
 
 RenderMode DesktopWindow::getRenderMode()
 {
-  AutoLock al(&m_bufferLock);
-  return m_framebuffer.getRenderMode();
+  RenderMode mode = m_framebuffer.getRenderMode();
+  
+  // Add debug logging
+  FILE* f = fopen("d2d_debug.log", "a");
+  if (f) {
+    fprintf(f, "[DW] getRenderMode: %s\n", (mode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
+    fclose(f);
+  }
+  
+  return mode;
 }
 
 RenderMode DesktopWindow::toggleRenderMode()

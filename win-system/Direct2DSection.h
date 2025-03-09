@@ -62,7 +62,18 @@ public:
   void blitFromDibSection(const Rect *rect);
 
   // Renders with stretching
-  void stretchFromDibSection(const Rect *srcRect, const Rect *dstRect);
+  void stretchFromDibSection(const Rect *dstRect, const Rect *srcRect);
+
+  // Debug method to make Direct2D rendering visible
+  void drawTestPattern();
+
+  // Draw a test pattern directly using Direct2D primitives
+  void drawDirectTestPattern(const Rect *rect);
+
+  // Draw a crosshair at a specific position for debugging mouse position
+  void drawCrosshair(int x, int y, COLORREF color);
+
+  void resize(const Rect* rect);
 
 private:
   // Initialize Direct2D factory and resources
@@ -83,24 +94,24 @@ private:
   // Renders with stretching with specified flags
   void stretchFromDibSection(const Rect *srcRect, const Rect *dstRect, DWORD flags);
 
+  // Helper function to update a Direct2D bitmap from DIB section memory
+  bool UpdateBitmapFromDIB(ID2D1Bitmap* pBitmap, const Rect* rect, void* dibBits, UINT dibStride);
+
   // Direct2D resources
   ID2D1Factory* m_pD2DFactory;
   ID2D1RenderTarget* m_pRenderTarget;  // Use base interface to support different render target types
+  ID2D1HwndRenderTarget* m_pHwndRenderTarget;
+  ID2D1DCRenderTarget* m_pDCRenderTarget;
   ID2D1Bitmap* m_pBitmap;
-  
-  // GDI resources for screen capture (temporary until we implement Direct2D capture)
-  HDC m_screenDC;
-  HDC m_memDC;
-  HBITMAP m_hBitmap;
-  HBITMAP m_hOldBitmap;
-  void* m_pBits;
 
-  // Screen information
-  Screen m_screen;
+  HWND m_hwnd;
+  
+  // Direct bitmap buffer (replaces GDI resources)
+  void* m_bitmapBits;
+
+  // render information
   int m_width;
   int m_height;
-  int m_srcOffsetX;
-  int m_srcOffsetY;
 };
 
 #endif // __DIRECT2DSECTION_H__ 

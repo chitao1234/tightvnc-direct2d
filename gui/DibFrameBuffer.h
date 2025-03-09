@@ -112,6 +112,14 @@ public:
   // NEW FUNCTION: Get the current rendering mode
   RenderMode getRenderMode() const;
 
+  // NEW FUNCTION: handle resize
+  void resize(const Rect *newSize);
+
+  /**
+   * Draw a test pattern for debugging Direct2D
+   */
+  void drawTestPattern();
+
 private:
   // This section to reduce access to some function that have been inherited from the
   // FrameBuffer class and can't to be use in here. Also, if user code will to try

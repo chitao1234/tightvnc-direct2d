@@ -1272,25 +1272,70 @@ LRESULT ViewerWindow::onHookProc(int code, WPARAM wParam, LPARAM lParam)
 
 void ViewerWindow::commandToggleDirect2D()
 {
+  // Add debugging info
+  FILE* f = fopen("d2d_debug.log", "a");
+  if (f) {
+    fprintf(f, "[VW] commandToggleDirect2D called, desktop window handle: %p\n", 
+            m_dsktWnd.getHWnd());
+    fclose(f);
+  }
+  
   // Toggle Direct2D mode
   if (m_dsktWnd.getHWnd() != NULL && IsWindow(m_dsktWnd.getHWnd())) {
     // Get the current rendering mode
     RenderMode currentMode = m_dsktWnd.getRenderMode();
     
+    // Log the current mode
+    f = fopen("d2d_debug.log", "a");
+    if (f) {
+      fprintf(f, "[VW] Current rendering mode: %s\n", 
+              (currentMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
+      fclose(f);
+    }
+    
     // Toggle between GDI and Direct2D
     RenderMode newMode = (currentMode == RENDER_MODE_GDI) ? 
                          RENDER_MODE_DIRECT2D : RENDER_MODE_GDI;
+    
+    // Log the attempt to change modes
+    f = fopen("d2d_debug.log", "a");
+    if (f) {
+      fprintf(f, "[VW] Attempting to set new rendering mode: %s\n", 
+              (newMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
+      fclose(f);
+    }
     
     // Try to set the new mode
     if (m_dsktWnd.setRenderMode(newMode)) {
       // If successful, update menu checkmark
       m_menu.checkedMenuItem(IDS_TB_DIRECT2D, newMode == RENDER_MODE_DIRECT2D);
       
+      // Log success
+      f = fopen("d2d_debug.log", "a");
+      if (f) {
+        fprintf(f, "[VW] Successfully changed rendering mode to: %s\n", 
+                (newMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
+        fclose(f);
+      }
+      
       // Force a screen refresh to show the rendering change immediately
       if (m_viewerCore) {
+        f = fopen("d2d_debug.log", "a");
+        if (f) {
+          fprintf(f, "[VW] Requesting frame buffer refresh\n");
+          fclose(f);
+        }
         m_viewerCore->refreshFrameBuffer();
       }
     } else {
+      // Log failure
+      f = fopen("d2d_debug.log", "a");
+      if (f) {
+        fprintf(f, "[VW] Failed to change rendering mode to: %s\n", 
+                (newMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
+        fclose(f);
+      }
+      
       // If unsuccessful and trying to enable D2D, show error message
       if (newMode == RENDER_MODE_DIRECT2D) {
         MessageBox(getHWnd(), 
@@ -1300,6 +1345,13 @@ void ViewerWindow::commandToggleDirect2D()
       }
     }
   } else {
+    // Log if desktop window not available
+    f = fopen("d2d_debug.log", "a");
+    if (f) {
+      fprintf(f, "[VW] Cannot change rendering mode - desktop window not initialized\n");
+      fclose(f);
+    }
+    
     // If the desktop window is not created, show an error message
     MessageBox(getHWnd(),
                _T("Cannot change rendering mode - desktop window not initialized."),
