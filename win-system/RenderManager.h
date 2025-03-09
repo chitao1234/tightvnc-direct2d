@@ -76,12 +76,6 @@ public:
    * @return true if Direct2D is available, false otherwise
    */
   static bool isD2DAvailable();
-  
-  /**
-   * Draw a test pattern directly to the screen to check if Direct2D is working
-   * This is for debugging purposes only
-   */
-  void drawTestPattern();
 
   // NEW FUNCTION: handle resize
   void resize(const Rect* rect);

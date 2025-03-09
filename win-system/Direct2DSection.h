@@ -64,15 +64,6 @@ public:
   // Renders with stretching
   void stretchFromDibSection(const Rect *dstRect, const Rect *srcRect);
 
-  // Debug method to make Direct2D rendering visible
-  void drawTestPattern();
-
-  // Draw a test pattern directly using Direct2D primitives
-  void drawDirectTestPattern(const Rect *rect);
-
-  // Draw a crosshair at a specific position for debugging mouse position
-  void drawCrosshair(int x, int y, COLORREF color);
-
   void resize(const Rect* rect);
 
 private:

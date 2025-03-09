@@ -296,25 +296,6 @@ void DibFrameBuffer::checkRenderManagerValid() const
   }
 }
 
-void DibFrameBuffer::drawTestPattern()
-{
-  LOG_DIBFB("drawTestPattern called");
-  
-  try {
-    // Check if the render manager is valid
-    checkRenderManagerValid();
-    
-    // Forward the call to the render manager
-    m_renderManager->drawTestPattern();
-    
-    LOG_DIBFB("drawTestPattern completed successfully");
-  } catch (std::exception& e) {
-    LOG_DIBFB("Exception in drawTestPattern: %s", e.what());
-  } catch (...) {
-    LOG_DIBFB("Unknown exception in drawTestPattern");
-  }
-}
-
 void DibFrameBuffer::resize(const Rect* newSize) {
   checkRenderManagerValid();
   m_renderManager->resize(newSize);

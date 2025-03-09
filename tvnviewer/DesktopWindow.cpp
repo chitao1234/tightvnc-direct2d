@@ -799,22 +799,8 @@ bool DesktopWindow::setRenderMode(RenderMode mode)
   
   bool success = m_framebuffer.setRenderMode(mode);
   
-  // If we succeeded in setting Direct2D mode, draw a test pattern to verify rendering
-  if (success && mode == RENDER_MODE_DIRECT2D) {
-    LOG_DW("Drawing test pattern to verify Direct2D rendering");
-    
-    // Draw a test pattern that will be visible regardless of frame buffer content
-    try {
-      m_framebuffer.drawTestPattern();
-      
-      LOG_DW("Test pattern drawn successfully");
-    } catch (std::exception& e) {
-      LOG_DW("Exception drawing test pattern: %s", e.what());
-    } catch (...) {
-      LOG_DW("Unknown exception drawing test pattern");
-    }
-    
-    // Force a redraw immediately to show the test pattern
+  if (success) {
+    // Force a redraw immediately to show the rendering change
     repaint(NULL);
   }
   

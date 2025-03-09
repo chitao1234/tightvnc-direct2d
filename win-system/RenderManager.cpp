@@ -314,24 +314,6 @@ bool RenderManager::isD2DAvailable()
   return false;
 }
 
-/**
- * Draws a test pattern directly to the render target
- * This is useful for debugging Direct2D rendering issues
- */
-void RenderManager::drawTestPattern()
-{
-  DEBUG_LOG("drawTestPattern called, mode=%s", 
-           (m_mode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
-  
-  // Only Direct2D mode supports drawing test patterns
-  if (m_mode == RENDER_MODE_DIRECT2D && m_direct2DSection) {
-    DEBUG_LOG("Forwarding drawTestPattern to Direct2DSection");
-    m_direct2DSection->drawTestPattern();
-  } else {
-    DEBUG_LOG("Cannot draw test pattern - not in Direct2D mode or Direct2DSection is NULL");
-  }
-}
-
 void RenderManager::resize(const Rect* newSize) {
   if (m_mode == RENDER_MODE_DIRECT2D) {
     m_direct2DSection->resize(newSize);
