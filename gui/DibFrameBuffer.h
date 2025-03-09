@@ -26,7 +26,7 @@
 #define __DIBFRAMEBUFFER_H__
 
 #include "rfb/FrameBuffer.h"
-#include "win-system/DibSection.h"
+#include "win-system/RenderManager.h"
 
 // This class is a wrapper for a FramBuffer and a DIB section.
 // It changes DIB section proerties by oneself according to FrameBuffer
@@ -105,6 +105,16 @@ public:
   // This function throwing an exception on a failure.
   void stretchFromDibSection(const Rect *srcRect, const Rect *dstRect);
 
+  // NEW FUNCTION: Set the rendering mode to use either GDI or Direct2D
+  // Returns true if the mode was successfully set, false otherwise
+  bool setRenderMode(RenderMode mode);
+
+  // NEW FUNCTION: Get the current rendering mode
+  RenderMode getRenderMode() const;
+
+  // NEW FUNCTION: handle resize
+  void resize(const Rect *newSize);
+
 private:
   // This section to reduce access to some function that have been inherited from the
   // FrameBuffer class and can't to be use in here. Also, if user code will to try
@@ -123,16 +133,16 @@ private:
 
 private:
   // This function updates a DIB section in accord with the FrameBuffer
-  void *updateDibSection(const Dimension *newDim,
+  void *updateRenderManager(const Dimension *newDim,
     const PixelFormat *pixelFormat,
     HWND compatibleWindow);
-  void releaseDibSection();
+  void releaseRenderManager();
 
   // This function generates an Exception if DIB section is not initialized yet.
-  void checkDibValid();
+  void checkRenderManagerValid() const;
 
   FrameBuffer m_fb;
-  DibSection *m_dibSection;
+  RenderManager *m_renderManager;
 };
 
 #endif // __DIBFRAMEBUFFER_H__

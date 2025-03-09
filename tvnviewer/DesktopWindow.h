@@ -37,6 +37,7 @@
 #include "gui/drawing/Graphics.h"
 #include "rfb/RfbKeySym.h"
 #include "viewer-core/RemoteViewerCore.h"
+#include "win-system/RenderManager.h"
 
 class DesktopWindow : public PaintWindow,
                       protected RfbKeySymListener
@@ -82,6 +83,17 @@ public:
 
   // Set function for m_winKeyIgnore.
   void setWinKeyIgnore(bool winKeyIgnore) { m_rfbKeySym->setWinKeyIgnore(winKeyIgnore); }
+
+  // NEW FUNCTION: Set rendering mode to GDI or Direct2D
+  // Returns true if mode changed successfully, false otherwise
+  bool setRenderMode(RenderMode mode);
+
+  // NEW FUNCTION: Get current rendering mode
+  RenderMode getRenderMode();
+
+  // NEW FUNCTION: Toggle between GDI and Direct2D rendering modes
+  // Returns current mode after toggling
+  RenderMode toggleRenderMode();
 
 protected:
   //

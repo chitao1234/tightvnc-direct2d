@@ -22,6 +22,14 @@
 //-------------------------------------------------------------------------
 //
 
+#ifdef _DEBUG
+#define DEBUG_LOG(tag, msg, ...) { FILE* f = fopen("d2d_debug.log", "a"); if(f) { fprintf(f, "[%s] " msg "\n", tag, ##__VA_ARGS__); fclose(f); } }
+#define LOG_DW(msg, ...) DEBUG_LOG("DW", msg, ##__VA_ARGS__)
+#else
+#define DEBUG_LOG(tag, msg, ...)
+#define LOG_DW(msg, ...)
+#endif
+
 #include "DesktopWindow.h"
 
 DesktopWindow::DesktopWindow(LogWriter *logWriter, ConnectionConfig *conConf)
@@ -254,6 +262,21 @@ bool DesktopWindow::onMouse(unsigned char mouseButtons, unsigned short wheelSpee
 
 bool DesktopWindow::onKey(WPARAM wParam, LPARAM lParam) 
 {
+  bool ctrlIsPressed = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+  bool altIsPressed = (GetKeyState(VK_MENU) & 0x8000) != 0;
+  
+  // Toggle render mode with Ctrl+Alt+R
+  if (ctrlIsPressed && altIsPressed && wParam == 'R') {
+    RenderMode newMode = toggleRenderMode();
+    // Log the mode change (optional)
+    if (newMode == RENDER_MODE_DIRECT2D) {
+      m_logWriter->info(_T("Switched to Direct2D rendering mode"));
+    } else {
+      m_logWriter->info(_T("Switched to GDI rendering mode"));
+    }
+    return true;
+  }
+
   if (!m_conConf->isViewOnly()) {
     unsigned short virtualKey = static_cast<unsigned short>(wParam);
     unsigned int additionalInfo = static_cast<unsigned int>(lParam);
@@ -329,6 +352,13 @@ void DesktopWindow::doDraw(DeviceContext *dc)
   AutoLock al(&m_bufferLock);
   int fbWidth  = m_framebuffer.getDimension().width;
   int fbHeight = m_framebuffer.getDimension().height;
+
+  // NEW: inform fb about resize first
+  if (m_winResize) {
+    LOG_DW("doDraw: resize! %dx%d",
+      m_clientArea.getWidth(), m_clientArea.getHeight());
+    m_framebuffer.resize(&m_clientArea);
+  }
 
   if (!fbWidth || !fbHeight) {
     Graphics graphics(dc);
@@ -474,6 +504,11 @@ void DesktopWindow::calcClientArea() {
 
 void DesktopWindow::drawImage(const RECT *src, const RECT *dst)
 {
+  // Add debug logging to trace drawing
+  LOG_DW("drawImage: src=(%d,%d,%d,%d), dst=(%d,%d,%d,%d)", 
+          src->left, src->top, src->right, src->bottom,
+          dst->left, dst->top, dst->right, dst->bottom);
+
   Rect rc_src(src);
   Rect rc_dest(dst);
 
@@ -485,8 +520,12 @@ void DesktopWindow::drawImage(const RECT *src, const RECT *dst)
      src->right == dst->right &&
      src->top == dst->top &&
      src->bottom == dst->bottom) {
+    // Add debug log
+    LOG_DW("Using blitFromDibSection");
     m_framebuffer.blitFromDibSection(&rc_dest);
   } else {
+    // Add debug log
+    LOG_DW("Using stretchFromDibSection");
     m_framebuffer.stretchFromDibSection(&rc_dest, &rc_src);
   }
 }
@@ -506,6 +545,10 @@ bool DesktopWindow::onDestroy()
 void DesktopWindow::updateFramebuffer(const FrameBuffer *framebuffer,
                                      const Rect *dstRect)
 {
+  // Add debug logging
+  LOG_DW("updateFramebuffer: rect=(%d,%d,%d,%d)", 
+          dstRect->left, dstRect->top, dstRect->right, dstRect->bottom);
+  
   // This code doesn't require blocking of m_framebuffer.
   //
   // If in this moment Windows paint frame buffer to screen,
@@ -563,6 +606,11 @@ void DesktopWindow::setNewFramebuffer(const FrameBuffer *framebuffer)
 
 void DesktopWindow::repaint(const Rect *repaintRect)
 {
+  if (!repaintRect) {
+    m_isBackgroundDirty = false;
+    redraw();
+    return;
+  }
   Rect rect;
   m_scManager.getSourceRect(&rect);
   Rect paint = repaintRect;
@@ -742,4 +790,52 @@ void DesktopWindow::sendCutTextEvent(const StringStorage *cutText)
     m_logWriter->detail(_T("Error in DesktopWindow::sendCutTextEvent(): %s"),
                         exception.getMessage());
   }
+}
+
+bool DesktopWindow::setRenderMode(RenderMode mode)
+{
+  // Add debug logging
+  LOG_DW("setRenderMode: %s", (mode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
+  
+  bool success = m_framebuffer.setRenderMode(mode);
+  
+  if (success) {
+    // Force a redraw immediately to show the rendering change
+    repaint(NULL);
+  }
+  
+  return success;
+}
+
+RenderMode DesktopWindow::getRenderMode()
+{
+  RenderMode mode = m_framebuffer.getRenderMode();
+  
+  // Add debug logging
+  LOG_DW("getRenderMode: %s", (mode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
+  
+  return mode;
+}
+
+RenderMode DesktopWindow::toggleRenderMode()
+{
+  AutoLock al(&m_bufferLock);
+  
+  // Get current mode
+  RenderMode currentMode = m_framebuffer.getRenderMode();
+  
+  // Toggle between GDI and Direct2D
+  RenderMode newMode = (currentMode == RENDER_MODE_GDI) ? 
+                       RENDER_MODE_DIRECT2D : RENDER_MODE_GDI;
+  
+  // Try to set the new mode
+  if (!m_framebuffer.setRenderMode(newMode)) {
+    // If setting the new mode fails, keep the current mode
+    return currentMode;
+  }
+  
+  // Trigger a repaint to show changes immediately
+  repaint(NULL);
+  
+  return newMode;
 }
