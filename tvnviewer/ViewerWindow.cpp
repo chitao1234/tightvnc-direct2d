@@ -32,6 +32,15 @@
 #include "TvnViewer.h"
 #include "ViewerWindow.h"
 
+// Debug logging
+#ifdef _DEBUG
+#define DEBUG_LOG(tag, msg, ...) { FILE* f = fopen("d2d_debug.log", "a"); if(f) { fprintf(f, "[%s] " msg "\n", tag, ##__VA_ARGS__); fclose(f); } }
+#define LOG_VW(msg, ...) DEBUG_LOG("VW", msg, ##__VA_ARGS__)
+#else
+#define DEBUG_LOG(tag, msg, ...)
+#define LOG_VW(msg, ...)
+#endif
+
 ViewerWindow::ViewerWindow(WindowsApplication *application,
                            ConnectionData *conData,
                            ConnectionConfig *conConf,
@@ -1273,12 +1282,8 @@ LRESULT ViewerWindow::onHookProc(int code, WPARAM wParam, LPARAM lParam)
 void ViewerWindow::commandToggleDirect2D()
 {
   // Add debugging info
-  FILE* f = fopen("d2d_debug.log", "a");
-  if (f) {
-    fprintf(f, "[VW] commandToggleDirect2D called, desktop window handle: %p\n", 
-            m_dsktWnd.getHWnd());
-    fclose(f);
-  }
+  LOG_VW("commandToggleDirect2D called, desktop window handle: %p", 
+          m_dsktWnd.getHWnd());
   
   // Toggle Direct2D mode
   if (m_dsktWnd.getHWnd() != NULL && IsWindow(m_dsktWnd.getHWnd())) {
@@ -1286,24 +1291,16 @@ void ViewerWindow::commandToggleDirect2D()
     RenderMode currentMode = m_dsktWnd.getRenderMode();
     
     // Log the current mode
-    f = fopen("d2d_debug.log", "a");
-    if (f) {
-      fprintf(f, "[VW] Current rendering mode: %s\n", 
-              (currentMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
-      fclose(f);
-    }
+    LOG_VW("Current rendering mode: %s", 
+            (currentMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
     
     // Toggle between GDI and Direct2D
     RenderMode newMode = (currentMode == RENDER_MODE_GDI) ? 
                          RENDER_MODE_DIRECT2D : RENDER_MODE_GDI;
     
     // Log the attempt to change modes
-    f = fopen("d2d_debug.log", "a");
-    if (f) {
-      fprintf(f, "[VW] Attempting to set new rendering mode: %s\n", 
-              (newMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
-      fclose(f);
-    }
+    LOG_VW("Attempting to set new rendering mode: %s", 
+            (newMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
     
     // Try to set the new mode
     if (m_dsktWnd.setRenderMode(newMode)) {
@@ -1311,30 +1308,18 @@ void ViewerWindow::commandToggleDirect2D()
       m_menu.checkedMenuItem(IDS_TB_DIRECT2D, newMode == RENDER_MODE_DIRECT2D);
       
       // Log success
-      f = fopen("d2d_debug.log", "a");
-      if (f) {
-        fprintf(f, "[VW] Successfully changed rendering mode to: %s\n", 
-                (newMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
-        fclose(f);
-      }
+      LOG_VW("Successfully changed rendering mode to: %s", 
+              (newMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
       
       // Force a screen refresh to show the rendering change immediately
       if (m_viewerCore) {
-        f = fopen("d2d_debug.log", "a");
-        if (f) {
-          fprintf(f, "[VW] Requesting frame buffer refresh\n");
-          fclose(f);
-        }
+        LOG_VW("Requesting frame buffer refresh");
         m_viewerCore->refreshFrameBuffer();
       }
     } else {
       // Log failure
-      f = fopen("d2d_debug.log", "a");
-      if (f) {
-        fprintf(f, "[VW] Failed to change rendering mode to: %s\n", 
-                (newMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
-        fclose(f);
-      }
+      LOG_VW("Failed to change rendering mode to: %s", 
+              (newMode == RENDER_MODE_DIRECT2D ? "Direct2D" : "GDI"));
       
       // If unsuccessful and trying to enable D2D, show error message
       if (newMode == RENDER_MODE_DIRECT2D) {
@@ -1346,11 +1331,7 @@ void ViewerWindow::commandToggleDirect2D()
     }
   } else {
     // Log if desktop window not available
-    f = fopen("d2d_debug.log", "a");
-    if (f) {
-      fprintf(f, "[VW] Cannot change rendering mode - desktop window not initialized\n");
-      fclose(f);
-    }
+    LOG_VW("Cannot change rendering mode - desktop window not initialized");
     
     // If the desktop window is not created, show an error message
     MessageBox(getHWnd(),

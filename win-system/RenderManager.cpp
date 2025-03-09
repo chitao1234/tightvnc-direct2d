@@ -28,7 +28,12 @@
 #include <stdio.h>
 
 // Debug logging - use the same macro as Direct2DSection
-#define DEBUG_LOG(msg, ...) { FILE* f = fopen("d2d_debug.log", "a"); if(f) { fprintf(f, "[RM] " msg "\n", ##__VA_ARGS__); fclose(f); } }
+// Debug logging
+#ifdef _DEBUG
+#define DEBUG_LOG(msg, ...) { FILE* f = fopen("d2d_debug.log", "a"); if(f) { fprintf(f, "[D2D] " msg "\n", ##__VA_ARGS__); fclose(f); } }
+#else
+#define DEBUG_LOG(msg, ...)
+#endif
 
 /**
  * RenderManager constructor

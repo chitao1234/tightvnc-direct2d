@@ -35,15 +35,11 @@
 #pragma comment(lib, "dwrite.lib")
 
 // Debug logging
+#ifdef _DEBUG
 #define DEBUG_LOG(msg, ...) { FILE* f = fopen("d2d_debug.log", "a"); if(f) { fprintf(f, "[D2D] " msg "\n", ##__VA_ARGS__); fclose(f); } }
-
-#define LOG_D2D(fmt, ...) {\
-  FILE *f = fopen("d2d_debug.log", "a");\
-  if (f) {\
-    fprintf(f, "[%s:%d] " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__);\
-    fclose(f);\
-  }\
-}
+#else
+#define DEBUG_LOG(msg, ...)
+#endif
 
 /**
  * Helper function to create a Direct2D factory.
@@ -113,21 +109,21 @@ void Direct2DSection::blitFromDibSection(const Rect *rect)
 
 void Direct2DSection::blitFromDibSection(const Rect *rect, DWORD flags)
 {
-  LOG_D2D("blitFromDibSection called with rect=(%d,%d,%d,%d), flags=%lu",
+  DEBUG_LOG("blitFromDibSection called with rect=(%d,%d,%d,%d), flags=%lu",
           rect->left, rect->top, rect->right, rect->bottom, flags);
 
   if (m_pRenderTarget == nullptr || m_pBitmap == nullptr) {
-    LOG_D2D("Error: Render target or bitmap is null");
+    DEBUG_LOG("Error: Render target or bitmap is null");
     return;
   }
 
   // Get render target size to ensure we're drawing within bounds
   D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
-  LOG_D2D("Render target size: %.2f x %.2f", rtSize.width, rtSize.height);
+  DEBUG_LOG("Render target size: %.2f x %.2f", rtSize.width, rtSize.height);
   
   // Get bitmap size
   D2D1_SIZE_U bitmapSize = m_pBitmap->GetPixelSize();
-  LOG_D2D("Bitmap size: %u x %u", bitmapSize.width, bitmapSize.height);
+  DEBUG_LOG("Bitmap size: %u x %u", bitmapSize.width, bitmapSize.height);
 
   // BeginDraw returns void
   m_pRenderTarget->BeginDraw();
@@ -143,7 +139,7 @@ void Direct2DSection::blitFromDibSection(const Rect *rect, DWORD flags)
   if (sourceArea.right > (int)bitmapSize.width) sourceArea.right = bitmapSize.width;
   if (sourceArea.bottom > (int)bitmapSize.height) sourceArea.bottom = bitmapSize.height;
   
-  LOG_D2D("Adjusted source area to bitmap bounds: (%d,%d,%d,%d)",
+  DEBUG_LOG("Adjusted source area to bitmap bounds: (%d,%d,%d,%d)",
           sourceArea.left, sourceArea.top, sourceArea.right, sourceArea.bottom);
 
   // Update the bitmap from the buffer
@@ -154,7 +150,7 @@ void Direct2DSection::blitFromDibSection(const Rect *rect, DWORD flags)
   );
   
   if (FAILED(hr)) {
-    LOG_D2D("Failed to update bitmap data: 0x%08x", hr);
+    DEBUG_LOG("Failed to update bitmap data: 0x%08x", hr);
     m_pRenderTarget->EndDraw();
     return;
   }
@@ -172,13 +168,13 @@ void Direct2DSection::blitFromDibSection(const Rect *rect, DWORD flags)
 
   // Ensure destination rectangle is within render target bounds
   if (d2dDstRect.right > rtSize.width) {
-    LOG_D2D("Destination right edge exceeds render target width, adjusting from %.2f to %.2f", 
+    DEBUG_LOG("Destination right edge exceeds render target width, adjusting from %.2f to %.2f", 
             d2dDstRect.right, rtSize.width);
     d2dDstRect.right = rtSize.width;
   }
   
   if (d2dDstRect.bottom > rtSize.height) {
-    LOG_D2D("Destination bottom edge exceeds render target height, adjusting from %.2f to %.2f", 
+    DEBUG_LOG("Destination bottom edge exceeds render target height, adjusting from %.2f to %.2f", 
             d2dDstRect.bottom, rtSize.height);
     d2dDstRect.bottom = rtSize.height;
   }
@@ -191,7 +187,7 @@ void Direct2DSection::blitFromDibSection(const Rect *rect, DWORD flags)
     static_cast<FLOAT>(sourceArea.bottom)
   );
 
-  LOG_D2D("Drawing bitmap - source: (%.2f,%.2f,%.2f,%.2f), dest: (%.2f,%.2f,%.2f,%.2f)",
+  DEBUG_LOG("Drawing bitmap - source: (%.2f,%.2f,%.2f,%.2f), dest: (%.2f,%.2f,%.2f,%.2f)",
           d2dSrcRect.left, d2dSrcRect.top, d2dSrcRect.right, d2dSrcRect.bottom,
           d2dDstRect.left, d2dDstRect.top, d2dDstRect.right, d2dDstRect.bottom);
 
@@ -206,11 +202,11 @@ void Direct2DSection::blitFromDibSection(const Rect *rect, DWORD flags)
 
   hr = m_pRenderTarget->EndDraw();
   if (FAILED(hr)) {
-    LOG_D2D("EndDraw failed with error: 0x%08x", hr);
+    DEBUG_LOG("EndDraw failed with error: 0x%08x", hr);
     return;
   }
 
-  LOG_D2D("blitFromDibSection completed successfully");
+  DEBUG_LOG("blitFromDibSection completed successfully");
 }
 
 void Direct2DSection::stretchFromDibSection(const Rect *dstRect, const Rect *srcRect)
@@ -221,22 +217,22 @@ void Direct2DSection::stretchFromDibSection(const Rect *dstRect, const Rect *src
 
 void Direct2DSection::stretchFromDibSection(const Rect *srcRect, const Rect *dstRect, DWORD flags)
 {
-  LOG_D2D("stretchFromDibSection with flags called: src=(%d,%d,%d,%d), dst=(%d,%d,%d,%d), flags=%lu", 
+  DEBUG_LOG("stretchFromDibSection with flags called: src=(%d,%d,%d,%d), dst=(%d,%d,%d,%d), flags=%lu", 
          srcRect->left, srcRect->top, srcRect->right, srcRect->bottom,
          dstRect->left, dstRect->top, dstRect->right, dstRect->bottom, flags);
 
   if (m_pRenderTarget == nullptr || m_pBitmap == nullptr) {
-    LOG_D2D("Error: Render target or bitmap is null");
+    DEBUG_LOG("Error: Render target or bitmap is null");
     return;
   }
 
   // Get render target size to ensure we're drawing within bounds
   D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
-  LOG_D2D("Render target size: %.2f x %.2f", rtSize.width, rtSize.height);
+  DEBUG_LOG("Render target size: %.2f x %.2f", rtSize.width, rtSize.height);
   
   // Get bitmap size
   D2D1_SIZE_U bitmapSize = m_pBitmap->GetPixelSize();
-  LOG_D2D("Bitmap size: %u x %u", bitmapSize.width, bitmapSize.height);
+  DEBUG_LOG("Bitmap size: %u x %u", bitmapSize.width, bitmapSize.height);
 
   // BeginDraw returns void
   m_pRenderTarget->BeginDraw();
@@ -249,7 +245,7 @@ void Direct2DSection::stretchFromDibSection(const Rect *srcRect, const Rect *dst
   );
   
   if (FAILED(hr)) {
-    LOG_D2D("Failed to update bitmap data: 0x%08x", hr);
+    DEBUG_LOG("Failed to update bitmap data: 0x%08x", hr);
     m_pRenderTarget->EndDraw();
     return;
   }
@@ -267,13 +263,13 @@ void Direct2DSection::stretchFromDibSection(const Rect *srcRect, const Rect *dst
   
   // Ensure destination rectangle is within render target bounds
   if (d2dDstRect.right > rtSize.width) {
-    LOG_D2D("Destination right edge exceeds render target width, adjusting from %.2f to %.2f", 
+    DEBUG_LOG("Destination right edge exceeds render target width, adjusting from %.2f to %.2f", 
             d2dDstRect.right, rtSize.width);
     d2dDstRect.right = rtSize.width;
   }
   
   if (d2dDstRect.bottom > rtSize.height) {
-    LOG_D2D("Destination bottom edge exceeds render target height, adjusting from %.2f to %.2f", 
+    DEBUG_LOG("Destination bottom edge exceeds render target height, adjusting from %.2f to %.2f", 
             d2dDstRect.bottom, rtSize.height);
     d2dDstRect.bottom = rtSize.height;
   }
@@ -289,9 +285,9 @@ void Direct2DSection::stretchFromDibSection(const Rect *srcRect, const Rect *dst
   // Calculate scale for logging
   float scaleX = (d2dDstRect.right - d2dDstRect.left) / (d2dSrcRect.right - d2dSrcRect.left);
   float scaleY = (d2dDstRect.bottom - d2dDstRect.top) / (d2dSrcRect.bottom - d2dSrcRect.top);
-  LOG_D2D("Scale factors: %.2f x %.2f", scaleX, scaleY);
+  DEBUG_LOG("Scale factors: %.2f x %.2f", scaleX, scaleY);
 
-  LOG_D2D("Drawing bitmap - source: (%.2f,%.2f,%.2f,%.2f), dest: (%.2f,%.2f,%.2f,%.2f)",
+  DEBUG_LOG("Drawing bitmap - source: (%.2f,%.2f,%.2f,%.2f), dest: (%.2f,%.2f,%.2f,%.2f)",
           d2dSrcRect.left, d2dSrcRect.top, d2dSrcRect.right, d2dSrcRect.bottom,
           d2dDstRect.left, d2dDstRect.top, d2dDstRect.right, d2dDstRect.bottom);
 
@@ -306,11 +302,11 @@ void Direct2DSection::stretchFromDibSection(const Rect *srcRect, const Rect *dst
 
   hr = m_pRenderTarget->EndDraw();
   if (FAILED(hr)) {
-    LOG_D2D("EndDraw failed with error: 0x%08x", hr);
+    DEBUG_LOG("EndDraw failed with error: 0x%08x", hr);
     return;
   }
 
-  LOG_D2D("stretchFromDibSection completed successfully");
+  DEBUG_LOG("stretchFromDibSection completed successfully");
 }
 
 void Direct2DSection::blitToDibSection(const Rect *rect, DWORD flags)
@@ -658,7 +654,7 @@ void Direct2DSection::drawDirectTestPattern(const Rect *rect)
 void Direct2DSection::drawCrosshair(int x, int y, COLORREF color)
 {
   if (!m_pRenderTarget) {
-    LOG_D2D("Cannot draw crosshair - render target is NULL");
+    DEBUG_LOG("Cannot draw crosshair - render target is NULL");
     return;
   }
   
@@ -703,14 +699,14 @@ void Direct2DSection::drawCrosshair(int x, int y, COLORREF color)
     
     pBrush->Release();
   } else {
-    LOG_D2D("Failed to create brush for crosshair, error: 0x%08x", hr);
+    DEBUG_LOG("Failed to create brush for crosshair, error: 0x%08x", hr);
   }
 }
 
 //bool Direct2DSection::UpdateBitmapFromDIB(ID2D1Bitmap* pBitmap, const Rect* rect, void* dibBits, UINT dibStride)
 //{
 //  if (!pBitmap || !rect || !dibBits) {
-//    LOG_D2D("UpdateBitmapFromDIB: Invalid parameters");
+//    DEBUG_LOG("UpdateBitmapFromDIB: Invalid parameters");
 //    return false;
 //  }
 //  
@@ -732,7 +728,7 @@ void Direct2DSection::drawCrosshair(int x, int y, COLORREF color)
 //  // Update the bitmap with the specified region data
 //  HRESULT hr = pBitmap->CopyFromMemory(&updateRect, srcBits, dibStride);
 //  if (FAILED(hr)) {
-//    LOG_D2D("CopyFromMemory failed with HRESULT: 0x%lx", hr);
+//    DEBUG_LOG("CopyFromMemory failed with HRESULT: 0x%lx", hr);
 //    return false;
 //  }
 //  

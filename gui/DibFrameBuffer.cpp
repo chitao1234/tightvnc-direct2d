@@ -25,6 +25,15 @@
 #include "DibFrameBuffer.h"
 #include "util/Exception.h"
 
+// Debug logging
+#ifdef _DEBUG
+#define DEBUG_LOG(tag, msg, ...) { FILE* f = fopen("d2d_debug.log", "a"); if(f) { fprintf(f, "[%s] " msg "\n", tag, ##__VA_ARGS__); fclose(f); } }
+#define LOG_DIBFB(msg, ...) DEBUG_LOG("DIBFB", msg, ##__VA_ARGS__)
+#else
+#define DEBUG_LOG(tag, msg, ...)
+#define LOG_DIBFB(msg, ...)
+#endif
+
 DibFrameBuffer::DibFrameBuffer()
 : m_renderManager(0)
 {
@@ -238,53 +247,33 @@ void *DibFrameBuffer::updateRenderManager(const Dimension *newDim,
                                       HWND compatibleWindow)
 {
   // Add debug logging
-  FILE* f = fopen("d2d_debug.log", "a");
-  if (f) {
-    fprintf(f, "[DIBFB] updateRenderManager: incoming window handle: %p\n", compatibleWindow);
-    fclose(f);
-  }
+  LOG_DIBFB("updateRenderManager: incoming window handle: %p", compatibleWindow);
 
   releaseRenderManager();
   
   // Check if the window handle is valid - if not, try using desktop window
   if (compatibleWindow == NULL || !IsWindow(compatibleWindow)) {
-    f = fopen("d2d_debug.log", "a");
-    if (f) {
-      fprintf(f, "[DIBFB] Invalid window handle, falling back to desktop window\n");
-      fclose(f);
-    }
+    LOG_DIBFB("Invalid window handle, falling back to desktop window");
     compatibleWindow = GetDesktopWindow();
   }
   
   // Start with GDI rendering by default for maximum compatibility
   RenderMode initialMode = RENDER_MODE_GDI;
   
-  f = fopen("d2d_debug.log", "a");
-  if (f) {
-    fprintf(f, "[DIBFB] Creating RenderManager with window handle: %p, dimensions: %dx%d\n", 
+  LOG_DIBFB("Creating RenderManager with window handle: %p, dimensions: %dx%d", 
             compatibleWindow, newDim->width, newDim->height);
-    fclose(f);
-  }
   
   try {
     // Create new RenderManager with default GDI rendering
     m_renderManager = new RenderManager(pixelFormat, newDim, compatibleWindow, initialMode);
     void* buffer = m_renderManager->getBuffer();
     
-    f = fopen("d2d_debug.log", "a");
-    if (f) {
-      fprintf(f, "[DIBFB] RenderManager created successfully, buffer: %p\n", buffer);
-      fclose(f);
-    }
+    LOG_DIBFB("RenderManager created successfully, buffer: %p", buffer);
     
     return buffer;
   } catch (Exception &e) {
     // If we couldn't create the render manager, clean up and rethrow
-    f = fopen("d2d_debug.log", "a");
-    if (f) {
-      fprintf(f, "[DIBFB] Exception creating RenderManager: %s\n", e.getMessage());
-      fclose(f);
-    }
+    LOG_DIBFB("Exception creating RenderManager: %s", e.getMessage());
     
     releaseRenderManager();
     throw;
@@ -309,11 +298,7 @@ void DibFrameBuffer::checkRenderManagerValid() const
 
 void DibFrameBuffer::drawTestPattern()
 {
-  FILE* f = fopen("d2d_debug.log", "a");
-  if (f) {
-    fprintf(f, "[DIBFB] drawTestPattern called\n");
-    fclose(f);
-  }
+  LOG_DIBFB("drawTestPattern called");
   
   try {
     // Check if the render manager is valid
@@ -322,23 +307,11 @@ void DibFrameBuffer::drawTestPattern()
     // Forward the call to the render manager
     m_renderManager->drawTestPattern();
     
-    f = fopen("d2d_debug.log", "a");
-    if (f) {
-      fprintf(f, "[DIBFB] drawTestPattern completed successfully\n");
-      fclose(f);
-    }
+    LOG_DIBFB("drawTestPattern completed successfully");
   } catch (std::exception& e) {
-    f = fopen("d2d_debug.log", "a");
-    if (f) {
-      fprintf(f, "[DIBFB] Exception in drawTestPattern: %s\n", e.what());
-      fclose(f);
-    }
+    LOG_DIBFB("Exception in drawTestPattern: %s", e.what());
   } catch (...) {
-    f = fopen("d2d_debug.log", "a");
-    if (f) {
-      fprintf(f, "[DIBFB] Unknown exception in drawTestPattern\n");
-      fclose(f);
-    }
+    LOG_DIBFB("Unknown exception in drawTestPattern");
   }
 }
 
